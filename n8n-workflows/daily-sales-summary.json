@@ -1,0 +1,211 @@
+{
+  "name": "POS Pro — Daily Sales Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 17 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily at 10pm PKT",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.POS_APP_URL }}/api/n8n/daily-summary",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "apiKey",
+              "value": "={{ $env.N8N_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-summary",
+      "name": "Fetch Daily Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over each store and return one item per store\nconst stores = $input.first().json.stores || [];\nreturn stores.map(store => ({ json: store }));"
+      },
+      "id": "split-stores",
+      "name": "Split by Store",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-phone",
+              "leftValue": "={{ $json.ownerPhone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-phone-check",
+      "name": "Has Phone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_SID }}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{ $env.TWILIO_WHATSAPP_FROM }}"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $json.ownerPhone }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.whatsappMessage }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-whatsapp",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "twilio-basic-auth",
+          "name": "Twilio Basic Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.GMAIL_USER }}",
+        "toEmail": "={{ $json.ownerEmail }}",
+        "subject": "=📊 Daily Sales Report — {{ $json.storeName }} ({{ $json.date }})",
+        "emailType": "html",
+        "message": "=<html>\n<body style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;\">\n  <div style=\"background:#0f766e;color:white;padding:20px;border-radius:8px 8px 0 0;\">\n    <h2 style=\"margin:0;\">📊 Daily Sales Report</h2>\n    <p style=\"margin:4px 0 0;\">{{ $json.storeName }} — {{ $json.date }}</p>\n  </div>\n  <div style=\"background:#f9fafb;padding:20px;border:1px solid #e5e7eb;\">\n    <h3 style=\"color:#0f766e;margin-top:0;\">💰 Aaj ki Sales</h3>\n    <table style=\"width:100%;border-collapse:collapse;\">\n      <tr><td style=\"padding:8px 0;\">Revenue</td><td style=\"text-align:right;font-weight:bold;font-size:18px;\">{{ $json.currency }} {{ $json.today.revenue.toLocaleString() }}</td></tr>\n      <tr><td style=\"padding:8px 0;\">Orders</td><td style=\"text-align:right;font-weight:bold;\">{{ $json.today.orders }}</td></tr>\n      <tr><td style=\"padding:8px 0;\">Avg Order Value</td><td style=\"text-align:right;\">{{ $json.currency }} {{ $json.today.avgOrderValue }}</td></tr>\n      {{ $json.today.revenueChange !== null ? '<tr><td style=\"padding:8px 0;\">vs Yesterday</td><td style=\"text-align:right;color:' + ($json.today.revenueChange >= 0 ? 'green' : 'red') + ';\">' + ($json.today.revenueChange >= 0 ? '▲' : '▼') + ' ' + Math.abs($json.today.revenueChange) + '%</td></tr>' : '' }}\n    </table>\n\n    {{ $json.topProducts.length > 0 ? '<h3 style=\"color:#0f766e;\">🏆 Top Products</h3><ol>' + $json.topProducts.map((p, i) => '<li>' + p.name + ' — ' + p.quantity + ' sold (' + $json.currency + ' ' + p.revenue.toLocaleString() + ')</li>').join('') + '</ol>' : '' }}\n\n    {{ $json.lowStock.length > 0 ? '<h3 style=\"color:#d97706;\">⚠️ Low Stock Alert</h3><ul>' + $json.lowStock.map(p => '<li style=\"color:#b45309;\"><b>' + p.name + '</b>: ' + p.quantity + ' left (min: ' + p.minStock + ')</li>').join('') + '</ul>' : '' }}\n  </div>\n  <div style=\"background:#f3f4f6;padding:12px 20px;border-radius:0 0 8px 8px;text-align:center;font-size:12px;color:#6b7280;\">\n    POS Pro — Automated Daily Report\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1120, 420],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-oauth",
+          "name": "Gmail OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily at 10pm PKT": {
+      "main": [
+        [
+          {
+            "node": "Fetch Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Daily Summary": {
+      "main": [
+        [
+          {
+            "node": "Split by Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split by Store": {
+      "main": [
+        [
+          {
+            "node": "Has Phone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Phone?": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["pos-pro", "daily-report"],
+  "meta": {
+    "instanceId": "pos-pro-n8n"
+  }
+}

@@ -1,26 +1,169 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Base colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  /* Bitepoint-inspired: Amber + Teal */
+  --background: #f8f7f4;
+  --foreground: #0f172a;
+
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  /* Primary: Amber/Yellow */
+  --primary: #f59e0b;
+  --primary-foreground: #1a1a1a;
+
+  /* Secondary: Teal */
+  --secondary: #f0fafa;
+  --secondary-foreground: #0f766e;
+
+  /* Muted */
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  /* Accent: Teal-700 */
+  --accent: #0f766e;
+  --accent-foreground: #ffffff;
+
+  /* Destructive: red-600 */
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  /* Success: green-600 */
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+
+  /* Warning: amber-500 */
+  --warning: #f59e0b;
+  --warning-foreground: #1a1a1a;
+
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #f59e0b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0f172a;
+    --foreground: #f8fafc;
+
+    --card: #1e293b;
+    --card-foreground: #f8fafc;
+
+    --popover: #1e293b;
+    --popover-foreground: #f8fafc;
+
+    --primary: #f8fafc;
+    --primary-foreground: #0f172a;
+
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+
+    --accent: #3b82f6;
+    --accent-foreground: #ffffff;
+
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+
+    --success: #22c55e;
+    --success-foreground: #ffffff;
+
+    --warning: #fbbf24;
+    --warning-foreground: #0f172a;
+
+    --border: #1e293b;
+    --input: #1e293b;
+    --ring: #3b82f6;
   }
+}
+
+* {
+  border-color: var(--border);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Reveal animations (scroll-triggered via JS) ── */
+@keyframes revealUp    { from { opacity:0; transform:translateY(40px) }  to { opacity:1; transform:translateY(0) } }
+@keyframes revealLeft  { from { opacity:0; transform:translateX(-50px) } to { opacity:1; transform:translateX(0) } }
+@keyframes revealRight { from { opacity:0; transform:translateX(50px) }  to { opacity:1; transform:translateX(0) } }
+@keyframes revealFade  { from { opacity:0 }                              to { opacity:1 } }
+
+/* Waiting state — content visible by default, no hiding */
+.reveal-waiting { opacity: 1; }
+
+/* Triggered state — play animation */
+.reveal-done.reveal-up    { animation: revealUp    0.6s ease-out forwards; }
+.reveal-done.reveal-left  { animation: revealLeft  0.6s ease-out forwards; }
+.reveal-done.reveal-right { animation: revealRight 0.6s ease-out forwards; }
+.reveal-done.reveal-fade  { animation: revealFade  0.6s ease-out forwards; }
+
+/* Nav/hero page load animations — always play, content starts visible */
+@keyframes slideInLeft  { from { opacity:0.4; transform:translateX(-30px) } to { opacity:1; transform:translateX(0) } }
+@keyframes slideInRight { from { opacity:0.4; transform:translateX(30px)  } to { opacity:1; transform:translateX(0) } }
+@keyframes slideInUp    { from { opacity:0.4; transform:translateY(20px)  } to { opacity:1; transform:translateY(0) } }
+@keyframes fadeIn       { from { opacity:0.4 }                              to { opacity:1 } }
+
+.animate-slide-left  { animation: slideInLeft  0.5s ease-out both; }
+.animate-slide-right { animation: slideInRight 0.5s ease-out both; }
+.animate-slide-up    { animation: slideInUp    0.45s ease-out both; }
+.animate-fade-in     { animation: fadeIn       0.5s ease-out both; }
+
+/* Stagger delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.40s; }
+.stagger-9 { animation-delay: 0.45s; }
