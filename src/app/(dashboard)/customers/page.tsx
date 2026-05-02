@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ExportButton } from '@/components/shared/ExportButton'
 import { BulkImport } from '@/components/shared/BulkImport'
 import { TableSkeleton } from '@/components/shared/LoadingSkeleton'
+import { PhoneInput } from '@/components/shared/PhoneInput'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 interface Customer {
@@ -318,10 +319,10 @@ export default function CustomersPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Phone</Label>
-                <Input
+                <PhoneInput
                   value={addForm.phone}
                   onChange={(e) => setAddForm((p) => ({ ...p, phone: e.target.value }))}
-                  placeholder="03XX-XXXXXXX"
+                  placeholder="3001234567"
                 />
               </div>
               <div className="space-y-1.5">

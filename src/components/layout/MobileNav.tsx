@@ -20,32 +20,46 @@ import {
   Settings,
   CreditCard,
   Shield,
+  Barcode,
+  ShieldCheck,
+  User,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSession, signOut } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
+import { hasPermission, type UserRole } from '@/lib/permissions'
 
-const bottomNav = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'POS', href: '/pos', icon: ShoppingCart },
-  { label: 'Products', href: '/products', icon: Package },
-  { label: 'Orders', href: '/orders', icon: ClipboardList },
+interface NavItem {
+  label: string
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  permission?: string
+}
+
+const bottomNav: NavItem[] = [
+  { label: 'Dashboard', href: '/dashboard',  icon: LayoutDashboard, permission: 'dashboard.view' },
+  { label: 'POS',       href: '/pos',        icon: ShoppingCart,    permission: 'pos.use' },
+  { label: 'Products',  href: '/products',   icon: Package,         permission: 'products.read' },
+  { label: 'Orders',    href: '/orders',     icon: ClipboardList,   permission: 'orders.read' },
 ]
 
-const allNav = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'POS Terminal', href: '/pos', icon: ShoppingCart },
-  { label: 'Products', href: '/products', icon: Package },
-  { label: 'Categories', href: '/categories', icon: Tag },
-  { label: 'Inventory', href: '/inventory', icon: Warehouse },
-  { label: 'Customers', href: '/customers', icon: Users },
-  { label: 'Orders', href: '/orders', icon: ClipboardList },
-  { label: 'Returns', href: '/returns', icon: RotateCcw },
-  { label: 'Discounts', href: '/discounts', icon: Percent },
-  { label: 'Staff', href: '/staff', icon: UserCheck },
-  { label: 'Reports', href: '/reports', icon: BarChart3 },
-  { label: 'Settings', href: '/settings', icon: Settings },
-  { label: 'Billing', href: '/billing', icon: CreditCard },
+const allNav: NavItem[] = [
+  { label: 'Dashboard',    href: '/dashboard',   icon: LayoutDashboard, permission: 'dashboard.view' },
+  { label: 'POS Terminal', href: '/pos',         icon: ShoppingCart,    permission: 'pos.use' },
+  { label: 'Price Check',  href: '/price-check', icon: Barcode,         permission: 'products.read' },
+  { label: 'Products',     href: '/products',    icon: Package,         permission: 'products.read' },
+  { label: 'Categories',   href: '/categories',  icon: Tag,             permission: 'categories.read' },
+  { label: 'Inventory',    href: '/inventory',   icon: Warehouse,       permission: 'inventory.read' },
+  { label: 'Customers',    href: '/customers',   icon: Users,           permission: 'customers.read' },
+  { label: 'Orders',       href: '/orders',      icon: ClipboardList,   permission: 'orders.read' },
+  { label: 'Returns',      href: '/returns',     icon: RotateCcw,       permission: 'returns.read' },
+  { label: 'Discounts',    href: '/discounts',   icon: Percent,         permission: 'discounts.read' },
+  { label: 'Staff',        href: '/staff',       icon: UserCheck,       permission: 'staff.read' },
+  { label: 'Reports',      href: '/reports',     icon: BarChart3,       permission: 'reports.view' },
+  { label: 'Audit Log',    href: '/audit',       icon: ShieldCheck,     permission: 'settings.read' },
+  { label: 'Settings',     href: '/settings',    icon: Settings,        permission: 'settings.read' },
+  { label: 'Billing',      href: '/billing',     icon: CreditCard,      permission: 'billing.read' },
+  { label: 'My Profile',   href: '/profile',     icon: User },
 ]
 
 export function MobileNav() {
@@ -58,81 +72,110 @@ export function MobileNav() {
     return pathname.startsWith(href)
   }
 
+  const role = (session?.user as any)?.role as UserRole | undefined
+  const visibleBottom = bottomNav.filter((i) => !i.permission || (role && hasPermission(role, i.permission)))
+  const visibleAll = allNav.filter((i) => !i.permission || (role && hasPermission(role, i.permission)))
+
+  const initials = session?.user?.name
+    ? session.user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'U'
+
   return (
     <>
-      {/* Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-pb">
-        <div className="flex items-stretch h-16">
-          {bottomNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex-1 flex flex-col items-center justify-center gap-1 text-xs transition-colors',
-                isActive(item.href)
-                  ? 'text-amber-500'
-                  : 'text-gray-500 hover:text-gray-900'
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+      {/* ── Bottom Navigation — touch-friendly tabs ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-gray-200 shadow-lg">
+        <div className="flex items-stretch h-16 max-w-md mx-auto">
+          {visibleBottom.map((item) => {
+            const active = isActive(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'group relative flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] transition-colors active:scale-95 transform-gpu',
+                  active ? 'text-amber-600' : 'text-gray-500 active:text-amber-600',
+                )}
+              >
+                {/* Active indicator pill */}
+                {active && (
+                  <span className="absolute top-1 inset-x-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-amber-400" />
+                )}
+                <item.icon className={cn('w-5 h-5 transition-transform', active && 'scale-110')} />
+                <span className={cn('font-medium', active && 'font-semibold')}>{item.label}</span>
+              </Link>
+            )
+          })}
           <button
             onClick={() => setSheetOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition-colors"
+            className={cn(
+              'group relative flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] transition-colors active:scale-95 transform-gpu',
+              sheetOpen ? 'text-amber-600' : 'text-gray-500 active:text-amber-600',
+            )}
           >
             <Menu className="w-5 h-5" />
-            <span>More</span>
+            <span className="font-medium">More</span>
           </button>
         </div>
       </nav>
 
-      {/* Sheet overlay */}
+      {/* ── Sheet overlay ── slides in from right */}
       {sheetOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
+        <div className="lg:hidden fixed inset-0 z-50 flex modal-overlay-anim">
           <div
-            className="flex-1 bg-black/50"
+            className="flex-1 bg-black/50 backdrop-blur-sm"
             onClick={() => setSheetOpen(false)}
           />
-          <div className="w-72 bg-slate-900 flex flex-col h-full overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
-              <span className="text-white font-semibold">Navigation</span>
-              <button
-                onClick={() => setSheetOpen(false)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          <div className="w-72 bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col h-full overflow-y-auto sheet-anim shadow-2xl">
+            {/* User card at top */}
+            <div className="p-4 border-b border-slate-700/50 bg-gradient-to-br from-amber-500/10 to-teal-500/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-400 flex items-center justify-center text-slate-900 font-bold text-sm">
+                  {initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-white text-sm font-semibold truncate">{session?.user?.name || 'User'}</p>
+                  <p className="text-amber-300 text-[10px] font-semibold uppercase tracking-wide truncate">{role}</p>
+                </div>
+                <button
+                  onClick={() => setSheetOpen(false)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/50 transition-colors"
+                  aria-label="Close menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            <nav className="flex-1 py-4 px-3 space-y-0.5">
-              {allNav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSheetOpen(false)}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                    isActive(item.href)
-                      ? 'bg-amber-400 text-slate-900'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                  )}
-                >
-                  <item.icon className="w-4 h-4 flex-shrink-0" />
-                  <span>{item.label}</span>
-                </Link>
-              ))}
+            <nav className="flex-1 py-3 px-3 space-y-0.5">
+              {visibleAll.map((item) => {
+                const active = isActive(item.href)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setSheetOpen(false)}
+                    className={cn(
+                      'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all',
+                      active
+                        ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 font-semibold shadow-md'
+                        : 'text-slate-300 hover:bg-slate-800/70 active:scale-[0.98]',
+                    )}
+                  >
+                    <item.icon className={cn('w-4 h-4 flex-shrink-0 transition-transform', active && 'scale-110')} />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
 
-              {session?.user?.role === 'SUPER_ADMIN' && (
+              {role === 'SUPER_ADMIN' && (
                 <Link
                   href="/super-admin"
                   onClick={() => setSheetOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all mt-3 border-t border-slate-700/50 pt-4',
                     isActive('/super-admin')
-                      ? 'bg-amber-400 text-slate-900'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 font-semibold'
+                      : 'text-slate-300 hover:bg-slate-800/70',
                   )}
                 >
                   <Shield className="w-4 h-4 flex-shrink-0" />
@@ -141,15 +184,14 @@ export function MobileNav() {
               )}
             </nav>
 
-            <div className="p-4 border-t border-slate-700">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-slate-300 hover:text-white hover:bg-slate-800"
+            <div className="p-3 border-t border-slate-700/50">
+              <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
+                className="w-full flex items-center justify-center gap-2 h-10 rounded-xl text-rose-300 hover:bg-rose-900/30 active:bg-rose-900/50 text-sm font-medium transition-colors"
               >
+                <LogOut className="w-4 h-4" />
                 Sign out
-              </Button>
+              </button>
             </div>
           </div>
         </div>

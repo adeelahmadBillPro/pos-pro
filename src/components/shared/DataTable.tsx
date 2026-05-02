@@ -29,11 +29,46 @@ export function DataTable<T extends Record<string, any>>({
 }: DataTableProps<T>) {
   if (loading) {
     return (
-      <div className="space-y-3">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-14 bg-gray-100 rounded-lg animate-pulse" />
-        ))}
-      </div>
+      <>
+        {/* Desktop skeleton */}
+        <div className="hidden md:block">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                {columns.map((col) => (
+                  <th key={col.key} className="px-4 py-3">
+                    <div className="shimmer h-3 w-24 rounded" />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {[...Array(5)].map((_, i) => (
+                <tr key={i}>
+                  {columns.map((col) => (
+                    <td key={col.key} className="px-4 py-3">
+                      <div className="shimmer h-4 w-full max-w-[160px] rounded" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* Mobile cards skeleton */}
+        <div className="md:hidden space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+              <div className="shimmer w-12 h-12 rounded-lg flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="shimmer h-4 w-2/3 rounded" />
+                <div className="shimmer h-3 w-1/3 rounded" />
+              </div>
+              <div className="shimmer h-6 w-16 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </>
     )
   }
 

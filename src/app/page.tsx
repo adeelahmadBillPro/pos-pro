@@ -376,17 +376,51 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="bg-slate-900 py-12 text-center">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center">
-            <ShoppingBag className="w-4 h-4 text-slate-900" />
+      <footer className="bg-slate-900 text-slate-300">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="col-span-2">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5 text-slate-900" />
+              </div>
+              <p className="font-bold text-white text-lg">POS Pro</p>
+            </Link>
+            <p className="text-sm mt-3 text-slate-400 max-w-sm">
+              Pakistan&apos;s smartest cloud POS for retail. Manage sales, inventory, customers, and staff — all from one dashboard.
+            </p>
+            <div className="flex flex-col gap-2 mt-4 text-sm">
+              <a href="tel:+923001234567" className="hover:text-amber-300 transition-colors">📞 +92 300 1234567</a>
+              <a href="mailto:hello@pospro.pk" className="hover:text-amber-300 transition-colors">✉️ hello@pospro.pk</a>
+              <span className="text-slate-400">📍 Karachi, Pakistan</span>
+            </div>
           </div>
-          <span className="font-bold text-white text-lg">POS Pro</span>
+
+          <div>
+            <h3 className="text-white font-semibold text-sm mb-3">Product</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/" className="hover:text-amber-300 transition-colors">Features</Link></li>
+              <li><Link href="/billing/plans" className="hover:text-amber-300 transition-colors">Pricing</Link></li>
+              <li><Link href="/faq" className="hover:text-amber-300 transition-colors">FAQ</Link></li>
+              <li><Link href="/register" className="hover:text-amber-300 transition-colors">Free Trial</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-white font-semibold text-sm mb-3">Legal</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/about" className="hover:text-amber-300 transition-colors">About Us</Link></li>
+              <li><Link href="/contact" className="hover:text-amber-300 transition-colors">Contact</Link></li>
+              <li><Link href="/terms" className="hover:text-amber-300 transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-amber-300 transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/refund" className="hover:text-amber-300 transition-colors">Refund Policy</Link></li>
+            </ul>
+          </div>
         </div>
-        <p className="text-slate-500 text-sm">© 2026 POS Pro. Built for Pakistani retail.</p>
-        <div className="mt-4 flex items-center justify-center gap-6 text-sm">
-          <Link href="/login" className="text-slate-400 hover:text-amber-400 transition-colors">Sign In</Link>
-          <Link href="/register" className="text-slate-400 hover:text-amber-400 transition-colors">Register</Link>
+        <div className="border-t border-slate-800">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+            <p>© {new Date().getFullYear()} POS Pro Pakistan. All rights reserved.</p>
+            <p>Made with care in Pakistan 🇵🇰</p>
+          </div>
         </div>
       </footer>
     </div>

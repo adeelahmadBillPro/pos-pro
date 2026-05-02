@@ -8,6 +8,9 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
 import { Loader2, ShoppingBag, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { registerSchema, type RegisterInput } from '@/lib/validations'
+import { STORE_TYPE_META, STORE_TYPE_ACCENT_CLASSES, type StoreType } from '@/lib/storeTypes'
+import { cn } from '@/lib/utils'
+import { PhoneInput } from '@/components/shared/PhoneInput'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -58,6 +61,7 @@ export default function RegisterPage() {
       password: '',
       confirmPassword: '',
       storeName: '',
+      storeType: 'GENERAL' as StoreType,
       phone: '',
       city: '',
       terms: false as unknown as true,
@@ -122,23 +126,46 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--muted)] px-4 py-12">
-      <div className="w-full max-w-lg">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--primary)] mb-4">
-            <ShoppingBag className="w-8 h-8 text-[var(--primary-foreground)]" />
-          </div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">POS SaaS</h1>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            Start your 14-day free trial
-          </p>
-        </div>
+    <div className="min-h-screen flex relative overflow-hidden">
+      {/* ── Decorative animated background — softer on mobile ── */}
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-50 via-white to-teal-50" />
+      <div className="hidden sm:block absolute -top-40 -left-40 w-96 h-96 rounded-full bg-amber-200/40 blur-3xl" />
+      <div className="hidden sm:block absolute top-1/3 -right-32 w-96 h-96 rounded-full bg-teal-200/40 blur-3xl" />
+      <div className="hidden sm:block absolute -bottom-40 left-1/3 w-96 h-96 rounded-full bg-rose-200/30 blur-3xl" />
+      {/* Mobile-only subtle gradient blobs */}
+      <div className="sm:hidden absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-200/30 blur-2xl" />
+      <div className="sm:hidden absolute bottom-0 -left-20 w-64 h-64 rounded-full bg-teal-200/30 blur-2xl" />
 
-        <Card className="shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Create your account</CardTitle>
-            <CardDescription>
+      {/* Subtle dot grid — desktop only (saves mobile render cost) */}
+      <div
+        className="hidden sm:block absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(15, 118, 110, 0.15) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }}
+      />
+
+      <div className="relative w-full flex items-center justify-center px-3 sm:px-4 py-6 sm:py-10">
+        <div className="w-full max-w-2xl">
+          {/* Logo — smaller on mobile to give form more room */}
+          <div className="flex flex-col items-center mb-4 sm:mb-6">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-2xl bg-amber-400 blur-md opacity-40" />
+              <div className="relative flex items-center justify-center w-12 sm:w-16 h-12 sm:h-16 rounded-2xl bg-amber-400 mb-2 sm:mb-4 shadow-lg">
+                <ShoppingBag className="w-6 sm:w-8 h-6 sm:h-8 text-slate-900" />
+              </div>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1 sm:mt-2">POS Pro</h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Start your 14-day free trial
+            </p>
+          </div>
+
+        <Card className="shadow-2xl border-gray-200/60 backdrop-blur-sm bg-white/95">
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-lg sm:text-xl">Create your account</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
               No credit card required. Cancel anytime.
             </CardDescription>
           </CardHeader>
@@ -249,6 +276,53 @@ export default function RegisterPage() {
                   )}
                 />
 
+                {/* ── Business Type selector ── */}
+                <FormField
+                  control={form.control}
+                  name="storeType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>What type of business?</FormLabel>
+                      <p className="text-xs text-[var(--muted-foreground)] -mt-1">
+                        Hum aapke business ke hisab se starter categories bana denge.
+                      </p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2 mt-1">
+                        {STORE_TYPE_META.map((meta) => {
+                          const accent = STORE_TYPE_ACCENT_CLASSES[meta.accent] ?? STORE_TYPE_ACCENT_CLASSES.teal
+                          const selected = field.value === meta.type
+                          return (
+                            <button
+                              key={meta.type}
+                              type="button"
+                              onClick={() => field.onChange(meta.type)}
+                              disabled={isLoading}
+                              title={meta.description}
+                              className={cn(
+                                'relative aspect-square flex flex-col items-center justify-center gap-0.5 sm:gap-1 p-1 sm:p-2 rounded-xl border-2 transition-all text-center',
+                                selected
+                                  ? `${accent.bg} border-current ${accent.text} ring-2 sm:ring-4 ${accent.ring} shadow-sm scale-[1.02]`
+                                  : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50 active:scale-95',
+                              )}
+                            >
+                              <span className="text-xl sm:text-2xl leading-none">{meta.emoji}</span>
+                              <span className={cn(
+                                'text-[9px] sm:text-xs font-semibold leading-tight px-0.5',
+                                selected ? accent.text : 'text-slate-600',
+                              )}>
+                                {meta.label}
+                              </span>
+                              {selected && (
+                                <CheckCircle2 className={cn('absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-3 h-3 sm:w-3.5 sm:h-3.5', accent.text)} />
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 {/* Phone + City row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
@@ -258,12 +332,13 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Phone number</FormLabel>
                         <FormControl>
-                          <Input
-                            type="tel"
-                            placeholder="03001234567"
-                            autoComplete="tel"
+                          <PhoneInput
+                            name={field.name}
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
                             disabled={isLoading}
-                            {...field}
+                            placeholder="3001234567"
                           />
                         </FormControl>
                         <FormMessage />
@@ -373,6 +448,23 @@ export default function RegisterPage() {
             </p>
           </CardFooter>
         </Card>
+
+          {/* Trust badges */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>No credit card needed</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>Cancel anytime</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>Setup in 5 minutes</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

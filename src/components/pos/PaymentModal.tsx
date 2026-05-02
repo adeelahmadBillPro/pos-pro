@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, Check, Loader2, X } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -28,6 +28,23 @@ export function PaymentModal({ open, onClose, total, currency = 'PKR', onConfirm
   const [splitRef, setSplitRef] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Reset all state when the modal closes — otherwise old "Cash Received" value
+  // and split payments leak into the next customer's transaction.
+  useEffect(() => {
+    if (!open) {
+      setActiveMethod('CASH')
+      setCashReceived('')
+      setCardRef('')
+      setJazzRef('')
+      setEasyRef('')
+      setSplitPayments([])
+      setSplitMethod('CASH')
+      setSplitAmount('')
+      setSplitRef('')
+      setLoading(false)
+    }
+  }, [open])
+
   const cashReceivedNum = parseFloat(cashReceived) || 0
   const change = Math.max(0, cashReceivedNum - total)
   const splitTotal = splitPayments.reduce((s, p) => s + p.amount, 0)
@@ -46,9 +63,20 @@ export function PaymentModal({ open, onClose, total, currency = 'PKR', onConfirm
     }
   }
 
-  function setQuickAmount(v: number) {
-    const rounded = Math.ceil(total / v) * v
-    setCashReceived(rounded.toString())
+  /** Add the given note value to the current cash received — matches how cashiers
+   *  count notes physically: each tap = "I just put one of these in the drawer".
+   *  e.g. bill Rs 16,000, customer hands four 5K notes → tap 5K four times → 20,000. */
+  function addNote(v: number) {
+    setCashReceived((prev) => {
+      const current = parseFloat(prev) || 0
+      const next = current + v
+      return next > 9999999 ? prev : String(Math.round(next * 100) / 100)
+    })
+  }
+
+  /** Quick "exact change" — fills in the exact bill total. */
+  function setExactAmount() {
+    setCashReceived(String(Math.round(total * 100) / 100))
   }
 
   function addSplitPayment() {
@@ -103,8 +131,8 @@ export function PaymentModal({ open, onClose, total, currency = 'PKR', onConfirm
   ] as const
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden max-h-[calc(100dvh-24px)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 modal-overlay-anim">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden max-h-[calc(100dvh-24px)] modal-content-anim">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
@@ -161,17 +189,31 @@ export function PaymentModal({ open, onClose, total, currency = 'PKR', onConfirm
                 </div>
               </div>
 
-              {/* Quick amounts */}
-              <div className="grid grid-cols-4 gap-1.5">
-                {[100, 500, 1000, 5000].map((v) => (
+              {/* Note denominations — each tap ADDS one note (matches cash counting) */}
+              <div>
+                <p className="text-[10px] text-gray-500 mb-1 font-medium uppercase tracking-wide flex items-center justify-between">
+                  <span>Tap notes added by customer</span>
                   <button
-                    key={v}
-                    onClick={() => setQuickAmount(v)}
-                    className="border border-gray-200 rounded-lg py-1.5 text-xs font-semibold hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-colors"
+                    type="button"
+                    onClick={setExactAmount}
+                    className="text-[10px] text-amber-700 font-semibold hover:underline normal-case tracking-normal"
                   >
-                    {v >= 1000 ? `${v / 1000}K` : v}
+                    Exact change
                   </button>
-                ))}
+                </p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[100, 500, 1000, 5000].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => addNote(v)}
+                      className="border border-gray-200 rounded-lg py-1.5 text-xs font-semibold hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 active:bg-amber-100 transition-colors active:scale-95 transform-gpu"
+                      title={`Add Rs ${v}`}
+                    >
+                      +{v >= 1000 ? `${v / 1000}K` : v}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Numpad — fixed height rows, no aspect-square */}

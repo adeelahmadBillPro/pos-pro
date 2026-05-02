@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, Edit, Trash2, Upload, Package } from 'lucide-react'
+import { Plus, Edit, Trash2, Upload, Package, ArrowUp, ArrowDown, GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -48,6 +48,39 @@ export default function ProductsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [reorderMode, setReorderMode] = useState(false)
+  const [savingOrder, setSavingOrder] = useState(false)
+
+  /** Move a product up or down within the current page's products array,
+   *  then push the new order to the API so the change persists in POS too. */
+  async function moveProduct(idx: number, direction: -1 | 1) {
+    const newIdx = idx + direction
+    if (newIdx < 0 || newIdx >= products.length) return
+    const next = [...products]
+    const [moved] = next.splice(idx, 1)
+    next.splice(newIdx, 0, moved)
+    setProducts(next)
+
+    setSavingOrder(true)
+    try {
+      const res = await fetch('/api/products/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productIds: next.map((p) => p.id) }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        toast.error(json.error || 'Could not save order')
+        // Revert on failure
+        setProducts(products)
+      }
+    } catch {
+      toast.error('Network error')
+      setProducts(products)
+    } finally {
+      setSavingOrder(false)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/categories')
@@ -142,6 +175,12 @@ export default function ProductsPage() {
       description: 'Unit of measure: pcs, kg, g, ltr, ml, box, dozen',
     },
     {
+      key: 'initialStock', label: 'Opening Stock', required: false,
+      example: '50',
+      description: 'How many units you currently have. Default: 0',
+      validate: (v) => v && isNaN(parseInt(v)) ? 'Opening stock must be a whole number' : null,
+    },
+    {
       key: 'minStock', label: 'Min Stock Level', required: false,
       example: '10',
       description: 'Low-stock alert threshold (default: 5)',
@@ -201,6 +240,7 @@ export default function ProductsPage() {
             trackStock: true,
             taxable,
             minStock: parseInt(row.minStock || '5') || 5,
+            initialStock: parseInt(row.initialStock || '0') || 0,
             unit: (row.unit || 'pcs').trim(),
             images,
           }),
@@ -243,9 +283,31 @@ export default function ProductsPage() {
       key: 'name',
       label: 'Product',
       render: (p: Product) => (
-        <div>
-          <p className="font-medium text-slate-900">{p.name}</p>
-          <p className="text-xs text-gray-400">{p.sku}</p>
+        <div className="flex items-center gap-2">
+          {reorderMode && (
+            <div className="flex flex-col gap-0.5 flex-shrink-0">
+              <button
+                onClick={(e) => { e.stopPropagation(); const idx = products.findIndex(x => x.id === p.id); moveProduct(idx, -1) }}
+                disabled={savingOrder || products.findIndex(x => x.id === p.id) === 0}
+                className="w-6 h-5 rounded border border-gray-200 hover:bg-amber-50 hover:border-amber-300 active:bg-amber-100 disabled:opacity-30 flex items-center justify-center transition-colors"
+                title="Move up"
+              >
+                <ArrowUp className="w-3 h-3" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); const idx = products.findIndex(x => x.id === p.id); moveProduct(idx, 1) }}
+                disabled={savingOrder || products.findIndex(x => x.id === p.id) === products.length - 1}
+                className="w-6 h-5 rounded border border-gray-200 hover:bg-amber-50 hover:border-amber-300 active:bg-amber-100 disabled:opacity-30 flex items-center justify-center transition-colors"
+                title="Move down"
+              >
+                <ArrowDown className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-medium text-slate-900">{p.name}</p>
+            <p className="text-xs text-gray-400">{p.sku}</p>
+          </div>
         </div>
       ),
     },
@@ -317,6 +379,16 @@ export default function ProductsPage() {
         description={`${pagination.total} products total`}
         actions={
           <>
+            <Button
+              variant={reorderMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setReorderMode((p) => !p)}
+              className={reorderMode ? 'bg-amber-500 hover:bg-amber-600 text-slate-900' : ''}
+              title="Drag products to change POS display order"
+            >
+              <GripVertical className="w-3.5 h-3.5 mr-1.5" />
+              {reorderMode ? 'Done Reordering' : 'Reorder'}
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload className="w-3.5 h-3.5 mr-1.5" />
               Import

@@ -7,6 +7,24 @@ export const loginSchema = z.object({
   password: z.string().min(6, 'Min 6 characters'),
 })
 
+export const STORE_TYPES = [
+  'GROCERY',
+  'COFFEE_SHOP',
+  'RESTAURANT',
+  'ELECTRONICS',
+  'MOBILE_SHOP',
+  'CLOTHING',
+  'PHARMACY',
+  'BAKERY',
+  'SALON',
+  'HARDWARE',
+  'GIFT_SHOP',
+  'STATIONERY',
+  'GENERAL',
+] as const
+
+export type StoreType = (typeof STORE_TYPES)[number]
+
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(50),
   email: z.string().email('Valid email required'),
@@ -16,6 +34,7 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'Must contain number'),
   confirmPassword: z.string(),
   storeName: z.string().min(2, 'Store name required').max(100),
+  storeType: z.enum(STORE_TYPES).default('GENERAL'),
   phone: z.string().regex(pkPhoneRegex, 'Valid Pakistani number required'),
   city: z.string().min(2, 'City required'),
   terms: z.literal(true).refine((v) => v === true, { message: 'You must accept terms' }),
@@ -35,6 +54,7 @@ export const productSchema = z.object({
   taxable: z.boolean().default(true),
   trackStock: z.boolean().default(true),
   minStock: z.number().int().min(0).default(5),
+  initialStock: z.number().int().min(0).default(0),
   unit: z.string().default('pcs'),
   images: z.array(z.string()).default([]),
 })
@@ -73,6 +93,8 @@ export const orderSchema = z.object({
     reference: z.string().optional(),
   })).min(1, 'Payment required'),
   discountCode: z.string().optional(),
+  /** Manual cashier-applied flat discount on the whole order (in PKR). */
+  orderDiscount: z.number().min(0).default(0),
   loyaltyPointsUsed: z.number().int().min(0).default(0),
   notes: z.string().max(500).optional(),
 })

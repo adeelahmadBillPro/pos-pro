@@ -5,9 +5,10 @@ import { z, ZodError } from 'zod'
 import bcrypt from 'bcryptjs'
 import { logAudit } from '@/lib/audit'
 
+// Email is intentionally NOT in the editable fields. Login depends on it,
+// so only support can change it (after manual verification).
 const profileUpdateSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  email: z.string().email('Invalid email'),
   phone: z.string().optional().or(z.literal('')),
   avatar: z.string().optional().or(z.literal('')),
   currentPassword: z.string().optional(),
@@ -63,17 +64,10 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     const data = profileUpdateSchema.parse(body)
 
-    // If changing email, ensure not taken
-    if (data.email !== existing.email) {
-      const conflict = await prisma.user.findUnique({ where: { email: data.email } })
-      if (conflict) {
-        return NextResponse.json({ success: false, error: 'Email already in use' }, { status: 409 })
-      }
-    }
-
+    // Email is locked — ignore any email field that arrives in the body.
+    // The user can change name, phone, avatar, password — that's it.
     const updateData: any = {
       name: data.name,
-      email: data.email,
       phone: data.phone || null,
       avatar: data.avatar || null,
     }
@@ -101,8 +95,8 @@ export async function PUT(req: NextRequest) {
       action: 'UPDATE',
       entity: 'User',
       entityId: userId,
-      oldValues: { name: existing.name, email: existing.email },
-      newValues: { name: updated.name, email: updated.email },
+      oldValues: { name: existing.name, phone: existing.phone },
+      newValues: { name: updated.name, phone: updated.phone },
     })
 
     return NextResponse.json({ success: true, data: updated })

@@ -94,11 +94,13 @@ model User {
   storeId       String?
   store         Store?    @relation(fields: [storeId], references: [id])
 
-  createdOrders    Order[]        @relation("OrderCashier")
-  processedReturns Return[]       @relation("ReturnProcessor")
+  createdOrders    Order[]         @relation("OrderCashier")
+  processedReturns Return[]        @relation("ReturnProcessor")
   shifts           StaffShift[]
   auditLogs        AuditLog[]
-  approvedPayments PaymentProof[] @relation("PaymentReviewer")
+  approvedPayments PaymentProof[]  @relation("PaymentReviewer")
+  createdPOs       PurchaseOrder[] @relation("POCreator")
+  receivedPOs      PurchaseOrder[] @relation("POReceiver")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -118,6 +120,10 @@ model Store {
   email   String?
   logo    String?
 
+  /// Business type — chosen at registration. Used to tailor starter categories,
+  /// onboarding flow, and future vertical features. Free-form, editable in settings.
+  storeType String @default("GENERAL")
+
   currency   String  @default("PKR")
   taxRate    Float   @default(0)
   taxName    String  @default("GST")
@@ -134,17 +140,18 @@ model Store {
   subscriptionStatus SubscriptionStatus @default(TRIAL)
   trialEndsAt        DateTime?
 
-  users         User[]
-  products      Product[]
-  categories    Category[]
-  customers     Customer[]
-  orders        Order[]
-  suppliers     Supplier[]
-  expenses      Expense[]
-  discounts     Discount[]
-  paymentProofs PaymentProof[]
-  subscriptions Subscription[]
-  posSessions   POSSession[]
+  users          User[]
+  products       Product[]
+  categories     Category[]
+  customers      Customer[]
+  orders         Order[]
+  suppliers      Supplier[]
+  purchaseOrders PurchaseOrder[]
+  expenses       Expense[]
+  discounts      Discount[]
+  paymentProofs  PaymentProof[]
+  subscriptions  Subscription[]
+  posSessions    POSSession[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -290,10 +297,14 @@ model Product {
   trackStock  Boolean   @default(true)
   unit        String    @default("pcs")
   minStock    Int       @default(5)
+  /** Cashier-curated display order in POS — lower comes first.
+   *  Defaulted to 0; bump via the products list reorder UI. */
+  sortOrder   Int       @default(0)
 
-  variants   ProductVariant[]
-  inventory  InventoryItem?
-  orderItems OrderItem[]
+  variants     ProductVariant[]
+  inventory    InventoryItem?
+  orderItems   OrderItem[]
+  poItems      PurchaseOrderItem[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -369,11 +380,78 @@ model Supplier {
   notes    String?
   isActive Boolean @default(true)
 
+  purchaseOrders PurchaseOrder[]
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([storeId])
+}
+
+enum PurchaseOrderStatus {
+  DRAFT       // Owner is still building the PO
+  SENT        // PO has been sent to supplier
+  PARTIAL     // Some items received, others pending
+  RECEIVED    // All items received and added to inventory
+  CANCELLED
+}
+
+/** Purchase Order — owner's order to a supplier for stock replenishment. */
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  poNumber    String              @unique
+  storeId     String
+  store       Store               @relation(fields: [storeId], references: [id])
+  supplierId  String
+  supplier    Supplier            @relation(fields: [supplierId], references: [id])
+  status      PurchaseOrderStatus @default(DRAFT)
+
+  // Computed/totals (sum of items at order time)
+  subtotal    Float    @default(0)
+  taxAmount   Float    @default(0)
+  total       Float    @default(0)
+
+  notes        String?
+  expectedAt   DateTime?  // when supplier promised delivery
+  receivedAt   DateTime?  // when fully received
+
+  createdById  String
+  createdBy    User       @relation("POCreator", fields: [createdById], references: [id])
+  receivedById String?
+  receivedBy   User?      @relation("POReceiver", fields: [receivedById], references: [id])
+
+  items        PurchaseOrderItem[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  @@index([storeId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+model PurchaseOrderItem {
+  id              String         @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product        @relation(fields: [productId], references: [id])
+
+  // Snapshots in case product is renamed/deleted later
+  productName     String
+  sku             String
+
+  quantityOrdered  Int
+  quantityReceived Int    @default(0)
+  unitCost         Float
+  total            Float
+
+  notes           String?
+
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
 
 // ============ CUSTOMER ============

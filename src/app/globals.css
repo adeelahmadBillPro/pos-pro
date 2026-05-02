@@ -81,43 +81,104 @@
   --ring: #f59e0b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
+/* Dark mode — applied when html element has the `.dark` class
+   (toggled by ThemeProvider; respects user's saved preference + system fallback) */
+.dark {
+  --background: #0b1120;
+  --foreground: #f1f5f9;
 
-    --card: #1e293b;
-    --card-foreground: #f8fafc;
+  --card: #111827;
+  --card-foreground: #f1f5f9;
 
-    --popover: #1e293b;
-    --popover-foreground: #f8fafc;
+  --popover: #111827;
+  --popover-foreground: #f1f5f9;
 
-    --primary: #f8fafc;
-    --primary-foreground: #0f172a;
+  --primary: #fbbf24;
+  --primary-foreground: #0b1120;
 
-    --secondary: #1e293b;
-    --secondary-foreground: #f8fafc;
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
 
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
+  --muted: #1f2937;
+  --muted-foreground: #94a3b8;
 
-    --accent: #3b82f6;
-    --accent-foreground: #ffffff;
+  --accent: #14b8a6;
+  --accent-foreground: #0b1120;
 
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
 
-    --success: #22c55e;
-    --success-foreground: #ffffff;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
 
-    --warning: #fbbf24;
-    --warning-foreground: #0f172a;
+  --warning: #fbbf24;
+  --warning-foreground: #0b1120;
 
-    --border: #1e293b;
-    --input: #1e293b;
-    --ring: #3b82f6;
-  }
+  --border: #1f2937;
+  --input: #1f2937;
+  --ring: #fbbf24;
 }
+
+/* In dark mode, give common Tailwind backgrounds/text a dark equivalent.
+   Saves us from rewriting every page that uses `bg-white text-slate-900` etc. */
+.dark body {
+  background: var(--background);
+  color: var(--foreground);
+}
+.dark .bg-white { background-color: #111827 !important; }
+.dark .bg-gray-50 { background-color: #0f172a !important; }
+.dark .bg-gray-100 { background-color: #1e293b !important; }
+.dark .border-gray-100,
+.dark .border-gray-200 { border-color: #1f2937 !important; }
+.dark .text-slate-900,
+.dark .text-slate-800 { color: #f1f5f9 !important; }
+.dark .text-slate-700 { color: #cbd5e1 !important; }
+.dark .text-slate-600,
+.dark .text-slate-500 { color: #94a3b8 !important; }
+.dark .text-gray-500,
+.dark .text-gray-600,
+.dark .text-gray-400 { color: #94a3b8 !important; }
+.dark .text-gray-300 { color: #475569 !important; }
+.dark .bg-\[\#f8f7f4\] { background-color: var(--background) !important; }
+
+/* Light-coded gradient backgrounds — neutralize in dark mode */
+.dark .bg-gradient-to-b.from-white,
+.dark .bg-gradient-to-br.from-white,
+.dark .bg-gradient-to-r.from-white,
+.dark .bg-gradient-to-tr.from-white,
+.dark .bg-gradient-to-tl.from-white { background: var(--card) !important; }
+
+/* Light-only hover backgrounds → subtle dark-mode equivalents */
+.dark .hover\:bg-gray-50:hover { background-color: rgba(255,255,255,0.05) !important; }
+.dark .hover\:bg-gray-100:hover { background-color: rgba(255,255,255,0.08) !important; }
+.dark .hover\:bg-amber-50:hover { background-color: rgba(251,191,36,0.1) !important; }
+
+/* Inputs in dark mode — proper contrast */
+.dark input, .dark textarea, .dark select {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #64748b !important; }
+
+/* Light-coded amber/teal bg-50 chips → muted variants in dark mode for legibility */
+.dark .bg-amber-50 { background-color: rgba(251,191,36,0.1) !important; }
+.dark .bg-teal-50 { background-color: rgba(20,184,166,0.1) !important; }
+.dark .bg-emerald-50 { background-color: rgba(16,185,129,0.1) !important; }
+.dark .bg-rose-50 { background-color: rgba(244,63,94,0.1) !important; }
+.dark .bg-violet-50 { background-color: rgba(139,92,246,0.1) !important; }
+.dark .bg-blue-50 { background-color: rgba(59,130,246,0.1) !important; }
+.dark .bg-slate-50 { background-color: rgba(255,255,255,0.04) !important; }
+
+/* Dark mode shimmer loader */
+.dark .shimmer {
+  background: linear-gradient(90deg, #1e293b 0px, #334155 40px, #1e293b 80px) !important;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
 * {
   border-color: var(--border);
@@ -167,3 +228,408 @@ body {
 .stagger-7 { animation-delay: 0.35s; }
 .stagger-8 { animation-delay: 0.40s; }
 .stagger-9 { animation-delay: 0.45s; }
+
+/* ────────────────────────────────────────────────────────────────────
+   PROFESSIONAL POLISH LAYER — micro-interactions for entire app
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Smooth scroll across the app */
+html { scroll-behavior: smooth; }
+
+/* Better focus rings — no jarring outline, soft amber glow.
+   Scoped to inputs/buttons/links so we don't add a box-shadow to dialog content / overlays. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  transition: box-shadow 0.15s ease;
+}
+
+/* Subtle text selection */
+::selection {
+  background: rgba(245, 158, 11, 0.25);
+  color: #1a1a1a;
+}
+
+/* ── Page transition ── opacity-only so we don't break position:fixed for modals
+   (any transform on an ancestor makes it the containing block for fixed children) */
+@keyframes pageEnter {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+.page-enter > * {
+  animation: pageEnter 0.3s ease-out both;
+}
+
+/* ── Card hover lift ── apply via class .card-hover */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Button press feedback ── tactile scale on click */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* ── Shimmer for skeleton loaders ── */
+@keyframes shimmer {
+  0%   { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #f1f5f9 0px, #e2e8f0 40px, #f1f5f9 80px);
+  background-size: 1000px 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* ── Pulse for live indicators (online dot, "new" badges) ── */
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+.pulse-ring { animation: pulseRing 2s infinite; }
+
+/* ── Cart item bounce ── when item added to cart */
+@keyframes cartBounce {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.15); background-color: rgba(251, 191, 36, 0.2); }
+  60%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.cart-bounce { animation: cartBounce 0.4s cubic-bezier(0.36, 1.5, 0.5, 1) both; }
+
+/* ── Number counter wiggle ── when count changes */
+@keyframes countPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.25); color: #f59e0b; }
+  100% { transform: scale(1); }
+}
+.count-pulse { animation: countPulse 0.4s ease-out both; }
+
+/* ── Success check animation ── for Payment Modal etc */
+@keyframes drawCheck {
+  from { stroke-dashoffset: 60; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes scaleCircle {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.success-circle {
+  animation: scaleCircle 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.success-check {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: drawCheck 0.5s 0.3s ease-out both;
+}
+
+/* ── Floating gentle motion ── for empty-state icons */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.float-gentle { animation: float 3s ease-in-out infinite; }
+
+/* ── Sidebar nav item hover ── slide-in highlight */
+.nav-item {
+  position: relative;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 0;
+  width: 3px;
+  background: #f59e0b;
+  border-radius: 0 3px 3px 0;
+  transform: translateY(-50%);
+  transition: height 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-item.is-active::before,
+.nav-item:hover::before {
+  height: 60%;
+}
+
+/* ── Dialog open/close animations ───────────────────────────────────────────
+   We use the modern `scale` and `opacity` CSS properties so we DON'T fight
+   Radix's `translate-x-[-50%] translate-y-[-50%]` centering transform. */
+
+@keyframes dialogContentIn {
+  from { opacity: 0; scale: 0.92; }
+  to   { opacity: 1; scale: 1; }
+}
+@keyframes dialogContentOut {
+  from { opacity: 1; scale: 1; }
+  to   { opacity: 0; scale: 0.95; }
+}
+@keyframes dialogOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes dialogOverlayOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Radix Dialog content — open + close keyframes */
+[role="dialog"][data-state="open"] {
+  animation: dialogContentIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[role="dialog"][data-state="closed"] {
+  animation: dialogContentOut 0.18s cubic-bezier(0.55, 0, 0.68, 0.06) both;
+}
+
+/* Radix Dialog overlay (the dimmed backdrop) */
+[data-radix-dialog-overlay][data-state="open"],
+[data-state="open"][data-radix-popper-content-wrapper] > [data-radix-dialog-overlay] {
+  animation: dialogOverlayIn 0.2s ease-out both;
+}
+[data-radix-dialog-overlay][data-state="closed"] {
+  animation: dialogOverlayOut 0.18s ease-in both;
+}
+
+/* Generic Sonner-style alerts and Confirm dialog — same treatment */
+[role="alertdialog"][data-state="open"] {
+  animation: dialogContentIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[role="alertdialog"][data-state="closed"] {
+  animation: dialogContentOut 0.18s cubic-bezier(0.55, 0, 0.68, 0.06) both;
+}
+
+/* For custom (non-Radix) modals — apply these classes manually */
+.modal-overlay-anim { animation: dialogOverlayIn 0.2s ease-out both; }
+.modal-content-anim { animation: dialogContentIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Slide-from-bottom variant — better feel for mobile sheets */
+@keyframes sheetIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sheet-anim { animation: sheetIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ── Input field smooth border transition ── */
+input, textarea, select {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+/* ── Disable animations for users who prefer reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Hide scrollbar but allow scrolling ── used in POS category tabs etc */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Pretty scrollbar elsewhere ── */
+::-webkit-scrollbar         { width: 10px; height: 10px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: #cbd5e1; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; background-clip: padding-box; border: 2px solid transparent; }
+
+/* ────────────────────────────────────────────────────────────────────
+   PREMIUM BUTTONS — gradients, shimmer, dancing CTAs
+   ──────────────────────────────────────────────────────────────────── */
+
+/* ── Primary gradient button (amber→orange) ── apply via .btn-premium */
+.btn-premium {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  color: #1a1a1a;
+  font-weight: 600;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.2s ease,
+              background 0.3s ease;
+  box-shadow: 0 4px 12px -2px rgba(245, 158, 11, 0.4);
+}
+.btn-premium:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.55);
+  background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #f59e0b 100%);
+}
+.btn-premium:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Shimmer sweep overlay */
+.btn-premium::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.btn-premium:hover::before { transform: translateX(100%); }
+
+/* ── Teal premium button (for secondary CTAs) ── */
+.btn-premium-teal {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 50%, #115e59 100%);
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.2s ease,
+              background 0.3s ease;
+  box-shadow: 0 4px 12px -2px rgba(13, 148, 136, 0.4);
+}
+.btn-premium-teal:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(13, 148, 136, 0.55);
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 50%, #0f766e 100%);
+}
+.btn-premium-teal:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+}
+.btn-premium-teal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.btn-premium-teal:hover::before { transform: translateX(100%); }
+
+/* ── Dancing CTA — gentle wiggle to draw attention ── */
+@keyframes dance {
+  0%, 100%   { transform: rotate(0deg) translateY(0); }
+  15%        { transform: rotate(-2deg) translateY(-2px); }
+  30%        { transform: rotate(2deg)  translateY(0); }
+  45%        { transform: rotate(-2deg) translateY(-2px); }
+  60%        { transform: rotate(2deg)  translateY(0); }
+  75%        { transform: rotate(-1deg) translateY(-1px); }
+}
+.dance-on-hover:hover { animation: dance 0.6s ease-in-out; }
+
+/* ── Heartbeat — for live/important badges ── */
+@keyframes heartbeat {
+  0%, 100%  { transform: scale(1); }
+  14%       { transform: scale(1.08); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.08); }
+  70%       { transform: scale(1); }
+}
+.heartbeat { animation: heartbeat 1.6s ease-in-out infinite; }
+
+/* ── Icon spin on hover (for refresh icons) ── */
+.icon-spin-on-hover { transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.icon-spin-on-hover:hover { transform: rotate(180deg); }
+
+/* ── Icon wiggle on parent hover ── */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-8deg); }
+  75%      { transform: rotate(8deg); }
+}
+.group:hover .wiggle-on-hover,
+.parent-hover:hover .wiggle-on-hover {
+  animation: wiggle 0.4s ease-in-out;
+}
+
+/* ── Color-cycle accent (for celebratory moments) ── */
+@keyframes colorCycle {
+  0%   { color: #f59e0b; }
+  33%  { color: #0d9488; }
+  66%  { color: #ec4899; }
+  100% { color: #f59e0b; }
+}
+.color-cycle { animation: colorCycle 3s linear infinite; }
+
+/* ── Glowing pulse (for "new" badges, primary CTAs at idle) ── */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+  50%      { box-shadow: 0 0 16px 4px rgba(245, 158, 11, 0.4); }
+}
+.glow-amber { animation: glow 2.5s ease-in-out infinite; }
+
+/* ── Confetti pop for milestones (used on order complete) ── */
+@keyframes confettiPop {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0); }
+  20%  { opacity: 1; transform: translate(var(--tx), var(--ty)) scale(1); }
+  100% { opacity: 0; transform: translate(var(--tx), calc(var(--ty) + 40px)) scale(0.5); }
+}
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: confettiPop 1.4s ease-out forwards;
+}
+
+/* ── Smooth gradient backgrounds for stat cards ── */
+.stat-card-gradient-amber {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.stat-card-gradient-teal {
+  background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
+  border: 1px solid rgba(13, 148, 136, 0.25);
+}
+.stat-card-gradient-rose {
+  background: linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+.stat-card-gradient-violet {
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+.stat-card-gradient-emerald {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* ── Toast (Sonner) custom styling ── */
+[data-sonner-toast] {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px -8px rgba(15, 23, 42, 0.18) !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  font-weight: 500;
+}
+[data-sonner-toast][data-type="success"] {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  color: #065f46 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+[data-sonner-toast][data-type="error"] {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+  color: #991b1b !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+[data-sonner-toast][data-type="warning"] {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+  color: #92400e !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}

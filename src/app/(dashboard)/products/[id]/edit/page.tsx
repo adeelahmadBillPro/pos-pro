@@ -13,8 +13,9 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { FormSkeleton } from '@/components/shared/LoadingSkeleton'
+import { ImageUpload } from '@/components/shared/ImageUpload'
 import { toast } from 'sonner'
-import { Loader2, Upload, X, RefreshCw } from 'lucide-react'
+import { Loader2, RefreshCw } from 'lucide-react'
 
 interface Category {
   id: string
@@ -316,31 +317,20 @@ export default function EditProductPage(props: { params: Promise<{ id: string }>
             <CardTitle className="text-base">Images</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-3">
-              {images.map((img, i) => (
-                <div key={i} className="relative w-20 h-20">
-                  <img src={img} alt="" className="w-full h-full object-cover rounded-lg border border-gray-200" />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              <label className={`w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 transition-colors ${uploading ? 'opacity-50 cursor-wait' : ''}`}>
-                {uploading ? (
-                  <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-                ) : (
-                  <>
-                    <Upload className="w-5 h-5 text-gray-400 mb-1" />
-                    <span className="text-xs text-gray-400">Add</span>
-                  </>
-                )}
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
-              </label>
-            </div>
+            <ImageUpload
+              value={images}
+              onChange={(next) => {
+                const arr = Array.isArray(next) ? next : next ? [next] : []
+                setImages(arr)
+                setValue('images', arr)
+              }}
+              folder="uploads/products"
+              multiple
+              size="md"
+              label="Add"
+              maxImages={5}
+            />
+            <p className="text-xs text-gray-400 mt-2">Up to 5 images, max 5MB each.</p>
           </CardContent>
         </Card>
 

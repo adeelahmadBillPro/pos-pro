@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { Providers } from '@/components/providers'
 import { PageLoader } from '@/components/shared/PageLoader'
+import { themeInitScript } from '@/components/providers/ThemeProvider'
 import './globals.css'
 
 const geistSans = Geist({
@@ -33,7 +34,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Apply saved theme BEFORE first paint to avoid flash-of-wrong-theme */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foreground)]">
         <Providers>
           <Suspense>

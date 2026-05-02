@@ -159,7 +159,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const totalDiscount = discountAmount + loyaltyDiscount
+      // Manual order discount (cashier-applied, not via coupon code)
+      const orderDiscount = Math.max(0, data.orderDiscount ?? 0)
+      const totalDiscount = discountAmount + loyaltyDiscount + orderDiscount
       const grandTotal = Math.max(0, subtotal - totalDiscount + totalTax)
 
       // Validate total payments

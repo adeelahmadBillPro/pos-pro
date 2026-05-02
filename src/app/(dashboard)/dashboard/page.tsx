@@ -4,15 +4,18 @@ import { prisma } from '@/lib/prisma'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatCard } from '@/components/dashboard/StatCard'
 import {
   TrendingUp,
   ShoppingBag,
   Users,
   AlertTriangle,
   Package,
+  Lightbulb,
 } from 'lucide-react'
 import Link from 'next/link'
 import { startOfDay, endOfDay } from 'date-fns'
+import { getWelcomeMessage, getIndustryTip } from '@/lib/storeTypes'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -20,6 +23,15 @@ export default async function DashboardPage() {
 
   const storeId = (session.user as any).storeId as string
   if (!storeId) redirect('/super-admin')
+
+  // Fetch store metadata for personalized greeting + industry tips
+  const store = await prisma.store.findUnique({
+    where: { id: storeId },
+    select: { name: true, storeType: true },
+  })
+  const storeType = store?.storeType ?? 'GENERAL'
+  const welcomeMsg = getWelcomeMessage(storeType, session.user.name ?? undefined)
+  const tip = getIndustryTip(storeType)
 
   const todayStart = startOfDay(new Date())
   const todayEnd = endOfDay(new Date())
@@ -96,37 +108,6 @@ export default async function DashboardPage() {
     (item) => item.quantity <= (item.product.minStock ?? 5)
   ).slice(0, 8)
 
-  const stats = [
-    {
-      title: "Today's Sales",
-      value: formatCurrency(todaySales._sum.total ?? 0),
-      icon: TrendingUp,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
-    },
-    {
-      title: "Today's Orders",
-      value: todayOrders.toString(),
-      icon: ShoppingBag,
-      color: 'text-violet-600',
-      bg: 'bg-violet-50',
-    },
-    {
-      title: 'Total Customers',
-      value: totalCustomers.toString(),
-      icon: Users,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50',
-    },
-    {
-      title: 'Low Stock Items',
-      value: lowStock.length.toString(),
-      icon: AlertTriangle,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
-    },
-  ]
-
   const statusColors: Record<string, string> = {
     COMPLETED: 'bg-green-100 text-green-700',
     PENDING: 'bg-amber-100 text-amber-700',
@@ -137,23 +118,52 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
+      {/* ── Personalized welcome banner ── */}
+      <div className="rounded-2xl bg-gradient-to-r from-amber-100 via-amber-50 to-teal-50 border border-amber-200 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-slide-up">
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900">{welcomeMsg}</h2>
+          {store?.name && (
+            <p className="text-xs text-slate-500 mt-0.5">{store.name}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-amber-800 bg-white/70 backdrop-blur rounded-xl px-3 py-2 border border-amber-200">
+          <Lightbulb className="w-3.5 h-3.5 flex-shrink-0 text-amber-600" />
+          <span className="leading-snug">{tip.replace(/^💡\s*/, '')}</span>
+        </div>
+      </div>
+
+      {/* Stats — animated count-up + gradient cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500 truncate">{stat.title}</p>
-                  <p className="text-xl font-bold text-slate-900 mt-1 truncate">{stat.value}</p>
-                </div>
-                <div className={`p-2 rounded-lg ${stat.bg} flex-shrink-0`}>
-                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <StatCard
+          title="Today's Sales"
+          value={Number(todaySales._sum.total ?? 0)}
+          iconName="trendingUp"
+          variant="emerald"
+          prefix="Rs "
+          decimals={0}
+          delay={0}
+        />
+        <StatCard
+          title="Today's Orders"
+          value={todayOrders}
+          iconName="shoppingBag"
+          variant="violet"
+          delay={80}
+        />
+        <StatCard
+          title="Total Customers"
+          value={totalCustomers}
+          iconName="users"
+          variant="teal"
+          delay={160}
+        />
+        <StatCard
+          title="Low Stock Items"
+          value={lowStock.length}
+          iconName="alertTriangle"
+          variant="rose"
+          delay={240}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

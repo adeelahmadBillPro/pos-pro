@@ -12,6 +12,8 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { FormSkeleton } from '@/components/shared/LoadingSkeleton'
+import { PhoneInput } from '@/components/shared/PhoneInput'
+import { ImageUpload } from '@/components/shared/ImageUpload'
 import { toast } from 'sonner'
 import { Loader2, Save } from 'lucide-react'
 
@@ -56,6 +58,7 @@ export default function SettingsPage() {
             phone: s.phone || '',
             email: s.email || '',
             city: s.city || '',
+            logo: s.logo || '',
             currency: s.currency,
             taxRate: s.taxRate,
             taxName: s.taxName,
@@ -122,6 +125,19 @@ export default function SettingsPage() {
             <CardDescription>Basic information shown on receipts and invoices</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Store logo */}
+            <div>
+              <Label>Store Logo</Label>
+              <p className="text-xs text-gray-500 mt-0.5 mb-2">Shown on receipts and at the top of the dashboard. PNG/JPG/WebP.</p>
+              <ImageUpload
+                value={watch('logo') || ''}
+                onChange={(v) => setValue('logo', typeof v === 'string' ? v : v[0] || '', { shouldDirty: true })}
+                folder="logos"
+                size="lg"
+                label="Logo"
+              />
+            </div>
+
             <div>
               <Label htmlFor="name">Store Name *</Label>
               <Input id="name" {...register('name')} className="mt-1" placeholder="My Store" />
@@ -131,7 +147,13 @@ export default function SettingsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" {...register('phone')} className="mt-1" placeholder="03XX-XXXXXXX" />
+                <div className="mt-1">
+                  <PhoneInput
+                    value={watch('phone') || ''}
+                    onChange={(e) => setValue('phone', e.target.value, { shouldValidate: true })}
+                    placeholder="3001234567"
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="city">City</Label>

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatCurrency } from '@/lib/utils'
+import { PhoneInput } from '@/components/shared/PhoneInput'
 
 interface BankAccount {
   id: string
@@ -268,12 +269,11 @@ function BillingPayForm() {
 
             <div className="space-y-1.5">
               <Label>Your Phone *</Label>
-              <Input
+              <PhoneInput
                 value={senderPhone}
                 onChange={(e) => setSenderPhone(e.target.value)}
-                placeholder="03XX-XXXXXXX"
+                placeholder="3001234567"
                 required
-                maxLength={15}
               />
             </div>
 

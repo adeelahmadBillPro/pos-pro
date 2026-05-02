@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { PageHeader } from '@/components/shared/PageHeader'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { TableSkeleton } from '@/components/shared/LoadingSkeleton'
+import { PhoneInput } from '@/components/shared/PhoneInput'
+import { ClockOutModal } from '@/components/staff/ClockOutModal'
 import { formatDateTime } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
@@ -40,8 +42,9 @@ export default function StaffPage() {
   const [tempPassword, setTempPassword] = useState<string | null>(null)
   const [clockingIn, setClockingIn] = useState(false)
   const [clockingOut, setClockingOut] = useState(false)
+  const [clockOutOpen, setClockOutOpen] = useState(false)
 
-  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<StaffInput>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isSubmitting } } = useForm<StaffInput>({
     resolver: standardSchemaResolver(staffSchema) as any,
     defaultValues: { role: 'CASHIER' },
   })
@@ -88,28 +91,9 @@ export default function StaffPage() {
     }
   }
 
-  async function clockOut() {
-    setClockingOut(true)
-    try {
-      const res = await fetch('/api/staff/clock-out', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-      const data = await res.json()
-      if (data.success) {
-        const orders = data.data.totalOrders ?? 0
-        const sales = (data.data.totalSales ?? 0).toLocaleString()
-        toast.success(`Clocked out — ${orders} orders, PKR ${sales}`)
-        load()
-      } else {
-        toast.error(data.error || 'Failed to clock out')
-      }
-    } catch {
-      toast.error('Failed to clock out')
-    } finally {
-      setClockingOut(false)
-    }
+  function clockOut() {
+    // Open the End-of-Day modal which handles drawer count + reconciliation
+    setClockOutOpen(true)
   }
 
   async function onSubmit(data: StaffInput) {
@@ -409,7 +393,13 @@ export default function StaffPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Phone</Label>
-                <Input {...register('phone')} placeholder="03XX-XXXXXXX" className="mt-1" />
+                <div className="mt-1">
+                  <PhoneInput
+                    value={watch('phone') || ''}
+                    onChange={(e) => setValue('phone', e.target.value, { shouldValidate: true })}
+                    placeholder="3001234567"
+                  />
+                </div>
               </div>
               <div>
                 <Label>PIN (4 digits)</Label>
@@ -438,6 +428,13 @@ export default function StaffPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* End-of-day clock out modal with drawer reconciliation */}
+      <ClockOutModal
+        open={clockOutOpen}
+        onClose={() => setClockOutOpen(false)}
+        onComplete={() => load()}
+      />
     </div>
   )
 }

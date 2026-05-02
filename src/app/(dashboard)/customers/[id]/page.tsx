@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { PhoneInput } from '@/components/shared/PhoneInput'
 import { TableSkeleton } from '@/components/shared/LoadingSkeleton'
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
 
@@ -327,7 +328,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Phone</Label>
-                <Input value={editForm.phone || ''} onChange={(e) => setEditForm((p: any) => ({ ...p, phone: e.target.value }))} placeholder="03XX-XXXXXXX" />
+                <PhoneInput value={editForm.phone || ''} onChange={(e) => setEditForm((p: any) => ({ ...p, phone: e.target.value }))} placeholder="3001234567" />
               </div>
               <div className="space-y-1.5">
                 <Label>Email</Label>

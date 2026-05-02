@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, Barcode, Loader2, UserPlus, X, Clock, HelpCircle, ShoppingCart } from 'lucide-react'
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Search, Barcode, Loader2, UserPlus, X, Clock, HelpCircle, ShoppingCart, ArrowLeftRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ProductGrid } from '@/components/pos/ProductGrid'
 import { CartPanel } from '@/components/pos/CartPanel'
 import { PaymentModal } from '@/components/pos/PaymentModal'
 import { ReceiptModal } from '@/components/pos/ReceiptModal'
+import { ParkedSalesButton } from '@/components/pos/ParkedSalesButton'
+import { AttendanceGate } from '@/components/pos/AttendanceGate'
 import { useCartStore } from '@/store/cartStore'
 import { toast } from 'sonner'
 import type { CartItem, PaymentEntry } from '@/types/index'
@@ -85,7 +88,18 @@ function saveRecentProduct(p: RecentProduct) {
 }
 
 export default function POSPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 animate-spin text-amber-500" /></div>}>
+      <POSContent />
+    </Suspense>
+  )
+}
+
+function POSContent() {
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
+  const exchangeCredit = parseFloat(searchParams.get('credit') || '0')
+  const fromReturn = searchParams.get('fromReturn') || ''
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
@@ -109,6 +123,7 @@ export default function POSPage() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
   const [mobileTab, setMobileTab] = useState<'products' | 'cart'>('products')
+  const [attendanceCleared, setAttendanceCleared] = useState(false)
 
   // Barcode scanner state
   const barcodeBuffer = useRef('')
@@ -135,6 +150,21 @@ export default function POSPage() {
   // Load recent products from localStorage
   useEffect(() => {
     setRecentProducts(loadRecentProducts())
+  }, [])
+
+  // If arriving from a Return → Exchange flow, apply the refund as an order discount
+  // and add a note so the receipt shows the credit was applied.
+  useEffect(() => {
+    if (exchangeCredit > 0 && fromReturn) {
+      cart.setOrderDiscount(exchangeCredit)
+      cart.setNotes(`Exchange credit ${fromReturn}: -Rs ${exchangeCredit}`)
+      toast.success(`Exchange credit Rs ${exchangeCredit.toLocaleString()} applied. Add new items.`, { duration: 4000 })
+      // Clean URL so a refresh doesn't double-apply the credit
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({}, '', '/pos')
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -170,7 +200,18 @@ export default function POSPage() {
   useEffect(() => {
     fetch('/api/products?limit=500&pos=1')
       .then((r) => r.json())
-      .then((res) => { if (res.success) allProducts.current = res.data })
+      .then((res) => {
+        if (!res.success) return
+        allProducts.current = res.data
+        // Auto-prune Recently Used: drop entries whose product no longer exists / is inactive
+        const validIds = new Set<string>(res.data.map((p: any) => p.id))
+        const stored = loadRecentProducts()
+        const cleaned = stored.filter((r) => validIds.has(r.id))
+        if (cleaned.length !== stored.length) {
+          try { localStorage.setItem(RECENT_KEY, JSON.stringify(cleaned)) } catch {}
+          setRecentProducts(cleaned)
+        }
+      })
       .catch(() => {})
   }, [])
 
@@ -361,8 +402,9 @@ export default function POSPage() {
       })),
       payments,
       discountCode: cart.discountCode || undefined,
+      orderDiscount: cart.orderDiscount || 0,
       loyaltyPointsUsed: cart.loyaltyPointsUsed,
-      notes: undefined,
+      notes: cart.notes || undefined,
     }
 
     const res = await fetch('/api/sales', {
@@ -378,9 +420,16 @@ export default function POSPage() {
     }
 
     setCompletedOrder(data.data)
+    // Full reset for the next customer — every visible state must clear
     cart.clearCart()
     setPaymentOpen(false)
     setReceiptOpen(true)
+    setSearch('')
+    setSearchDropdownOpen(false)
+    setLastScanned('')
+    setScannerActive(false)
+    setSelectedCategory('all')
+    setMobileTab('products')
     toast.success('Sale completed!')
   }
 
@@ -452,7 +501,7 @@ export default function POSPage() {
   const cashierName = session?.user?.name ?? 'Cashier'
 
   return (
-    <div className="flex flex-col flex-1 -m-4 md:-m-6 overflow-hidden min-h-0">
+    <div className="flex flex-col h-full -m-4 md:-m-6 overflow-hidden">
 
       {/* ── POS Header Bar ────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 py-1.5 bg-teal-700 text-white text-xs flex-shrink-0">
@@ -460,14 +509,31 @@ export default function POSPage() {
           <Clock className="w-3.5 h-3.5 opacity-80" />
           <span className="font-mono font-medium tracking-wide">{currentTime}</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="opacity-80">Cashier: <span className="font-semibold opacity-100">{cashierName}</span></span>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <ParkedSalesButton />
+          <span className="opacity-80 hidden sm:inline">Cashier: <span className="font-semibold opacity-100">{cashierName}</span></span>
           <div className="flex items-center gap-1.5 bg-amber-400 text-slate-900 rounded-full px-2.5 py-0.5 font-semibold">
             <ShoppingCart className="w-3 h-3" />
             <span>{cartItemCount}</span>
           </div>
         </div>
       </div>
+
+      {/* Exchange-mode banner — shown when this POS visit is for an exchange after a return */}
+      {cart.orderDiscount > 0 && cart.notes.startsWith('Exchange credit') && (
+        <div className="bg-amber-100 border-b border-amber-300 text-amber-900 px-4 py-2 text-xs sm:text-sm flex items-center gap-2 flex-shrink-0">
+          <ArrowLeftRight className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1 font-medium">
+            Exchange mode: <span className="font-bold">Rs {cart.orderDiscount.toLocaleString()}</span> credit applied. Add the new items the customer wants.
+          </span>
+          <button
+            onClick={() => { cart.setOrderDiscount(0); cart.setNotes('') }}
+            className="text-[11px] text-amber-700 hover:text-amber-900 hover:underline font-semibold"
+          >
+            Cancel exchange
+          </button>
+        </div>
+      )}
 
       {/* ── Main Content ─────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
@@ -610,9 +676,24 @@ export default function POSPage() {
           {/* ── Recently Used Bar ─────────────────────────────────────────── */}
           {recentProducts.length > 0 && (
             <div className="px-3 pt-3 pb-0 bg-white border-b border-gray-100">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Clock className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recently Used</span>
+              <div className="flex items-center justify-between gap-1.5 mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recently Used</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') localStorage.removeItem(RECENT_KEY)
+                    setRecentProducts([])
+                    toast.success('Recently used cleared')
+                  }}
+                  className="text-[10px] text-gray-400 hover:text-rose-500 hover:underline transition-colors flex items-center gap-1"
+                  title="Clear recently used"
+                >
+                  <X className="w-3 h-3" />
+                  Clear all
+                </button>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar">
                 {recentProducts.map((p) => {
@@ -705,19 +786,19 @@ export default function POSPage() {
         </button>
       </div>
 
-      {/* ── Floating Shortcuts Button ─────────────────────────────────────── */}
+      {/* ── Floating Shortcuts Button — desktop only, away from Process Payment ── */}
       <button
         onClick={() => setShortcutsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 w-10 h-10 rounded-full bg-teal-700 text-white shadow-lg hover:bg-teal-800 transition-colors flex items-center justify-center"
-        title="Keyboard shortcuts"
+        className="hidden lg:flex fixed bottom-3 left-64 z-40 w-9 h-9 rounded-full bg-slate-700/80 hover:bg-slate-800 text-white shadow-md transition-colors items-center justify-center"
+        title="Keyboard shortcuts (?)"
       >
-        <HelpCircle className="w-5 h-5" />
+        <HelpCircle className="w-4 h-4" />
       </button>
 
       {/* ── Shortcuts Help Dialog ─────────────────────────────────────────── */}
       {shortcutsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50" onClick={() => setShortcutsOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50 modal-overlay-anim" onClick={() => setShortcutsOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 modal-content-anim" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-900">Keyboard Shortcuts</h3>
               <button onClick={() => setShortcutsOpen(false)}>
@@ -748,8 +829,8 @@ export default function POSPage() {
 
       {/* ── Clear Cart Confirmation ───────────────────────────────────────── */}
       {clearConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50 modal-overlay-anim">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 modal-content-anim">
             <h3 className="font-bold text-slate-900 mb-2">Clear Cart?</h3>
             <p className="text-sm text-gray-500 mb-4">
               This will remove all {cart.items.length} item(s) from the cart.
@@ -775,8 +856,8 @@ export default function POSPage() {
 
       {/* Customer Search Dialog */}
       {customerSearchOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/50 modal-overlay-anim">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm sheet-anim">
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-slate-900">Select Customer <kbd className="text-xs bg-gray-100 border border-gray-200 px-1 rounded font-mono ml-1">F6</kbd></h3>
@@ -853,6 +934,9 @@ export default function POSPage() {
           loyaltyPointsEarned={loyaltyEarned}
         />
       )}
+
+      {/* Attendance gate — cashiers must clock in before using POS */}
+      {!attendanceCleared && <AttendanceGate onCleared={() => setAttendanceCleared(true)} />}
     </div>
   )
 }

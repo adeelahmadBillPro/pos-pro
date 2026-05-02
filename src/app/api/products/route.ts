@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
             select: { quantity: true, id: true },
           },
         },
-        orderBy: { name: 'asc' },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         skip: pos ? 0 : skip,
         take: pos ? 200 : limit,
       }),
@@ -115,13 +115,29 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      // Create inventory item
-      await tx.inventoryItem.create({
+      // Create inventory item with the initial stock the owner entered
+      const initialQty = Math.max(0, Math.floor(data.initialStock ?? 0))
+      const inventoryItem = await tx.inventoryItem.create({
         data: {
           productId: newProduct.id,
-          quantity: 0,
+          quantity: initialQty,
         },
       })
+
+      // Log opening-stock movement so the inventory page shows where the qty came from
+      if (initialQty > 0) {
+        await tx.stockMovement.create({
+          data: {
+            inventoryItemId: inventoryItem.id,
+            type: 'PURCHASE',
+            quantity: initialQty,
+            previousQty: 0,
+            newQty: initialQty,
+            notes: 'Initial stock on product creation',
+            createdById: user.id,
+          },
+        })
+      }
 
       return newProduct
     })

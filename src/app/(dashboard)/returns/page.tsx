@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { RotateCcw, Search, Loader2, Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { RotateCcw, Search, Loader2, Plus, ArrowLeftRight, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -57,6 +58,8 @@ export default function ReturnsPage() {
   const [refundMethod, setRefundMethod] = useState('CASH')
   const [notes, setNotes] = useState('')
   const [processing, setProcessing] = useState(false)
+  const [exchangeMode, setExchangeMode] = useState(false)
+  const router = useRouter()
 
   const loadReturns = useCallback(async () => {
     setLoading(true)
@@ -136,16 +139,24 @@ export default function ReturnsPage() {
           items,
           reason,
           notes: notes || undefined,
-          refundMethod,
+          refundMethod: exchangeMode ? 'STORE_CREDIT' : refundMethod,
         }),
       })
       const data = await res.json()
       if (data.success) {
+        if (exchangeMode) {
+          // Exchange flow — open POS with the credit applied so cashier can ring up replacement items
+          toast.success(`Refund Rs ${refundAmount.toLocaleString()} converted to exchange credit`)
+          const creditAmount = data.data?.refundAmount ?? refundAmount
+          router.push(`/pos?credit=${creditAmount}&fromReturn=${data.data?.returnNumber ?? ''}`)
+          return
+        }
         toast.success('Return processed successfully')
         setReturnOpen(false)
         setFoundOrder(null)
         setOrderSearch('')
         setSelectedItems({})
+        setExchangeMode(false)
         loadReturns()
       } else {
         toast.error(data.error || 'Failed to process return')
@@ -328,12 +339,40 @@ export default function ReturnsPage() {
                     <select
                       value={refundMethod}
                       onChange={(e) => setRefundMethod(e.target.value)}
-                      className="w-full mt-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+                      disabled={exchangeMode}
+                      className="w-full mt-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
                       <option value="CASH">Cash</option>
                       <option value="ORIGINAL_PAYMENT">Original Method</option>
                       <option value="STORE_CREDIT">Store Credit</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Exchange toggle */}
+                <div
+                  onClick={() => setExchangeMode((p) => !p)}
+                  className={`mt-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                    exchangeMode
+                      ? 'border-amber-400 bg-amber-50'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-5 h-5 rounded-md border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${
+                      exchangeMode ? 'bg-amber-400 border-amber-400' : 'border-gray-300'
+                    }`}>
+                      {exchangeMode && <span className="text-slate-900 text-xs font-bold">✓</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
+                        <ArrowLeftRight className="w-4 h-4 text-amber-600" />
+                        Exchange instead of refund
+                      </p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Process karne ke baad seedha POS open hoga with the credit applied. Cashier naye items scan karega — customer pays the difference.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -354,10 +393,12 @@ export default function ReturnsPage() {
                   <Button
                     onClick={processReturn}
                     disabled={processing || Object.keys(selectedItems).length === 0}
-                    className="bg-violet-600 hover:bg-violet-700 text-white"
+                    className={exchangeMode ? 'bg-amber-500 hover:bg-amber-600 text-slate-900 gap-1.5' : 'bg-violet-600 hover:bg-violet-700 text-white gap-1.5'}
                   >
-                    {processing && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
-                    Process Return
+                    {processing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {!processing && exchangeMode && <ArrowLeftRight className="w-3.5 h-3.5" />}
+                    {!processing && !exchangeMode && <RotateCcw className="w-3.5 h-3.5" />}
+                    {exchangeMode ? 'Process Exchange & Open POS' : 'Process Return'}
                   </Button>
                 </div>
               </>

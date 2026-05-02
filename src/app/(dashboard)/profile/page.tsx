@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { User, Mail, Phone, Lock, Save, Camera, Eye, EyeOff, Shield, Calendar, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { PhoneInput } from '@/components/shared/PhoneInput'
 
 interface ProfileData {
   id: string
@@ -95,7 +96,7 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          email,
+          // email intentionally omitted — server ignores it anyway, but no point sending
           phone,
           avatar,
           currentPassword: currentPassword || undefined,
@@ -223,16 +224,24 @@ export default function ProfilePage() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
                 <Mail className="w-3.5 h-3.5 text-gray-400" />
-                Email *
+                Email
+                <span className="ml-1 text-[10px] font-semibold uppercase bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Locked</span>
               </label>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all"
-                placeholder="you@example.com"
+                readOnly
+                disabled
+                title="Email cannot be changed for security. Contact support if you need to update it."
+                className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600 cursor-not-allowed"
               />
+              <p className="text-[11px] text-gray-500 leading-tight">
+                Email is your login. To change it,{' '}
+                <a href="mailto:support@pospro.pk" className="text-amber-700 hover:underline font-medium">
+                  email support
+                </a>{' '}
+                — we&apos;ll verify and update for you.
+              </p>
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
@@ -240,13 +249,10 @@ export default function ProfilePage() {
                 <Phone className="w-3.5 h-3.5 text-gray-400" />
                 Phone
               </label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                maxLength={20}
-                className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all"
-                placeholder="03XX-XXXXXXX"
+                placeholder="3001234567"
               />
             </div>
           </div>
