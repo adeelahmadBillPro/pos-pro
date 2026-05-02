@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   User,
   LogOut,
+  Truck,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSession, signOut } from 'next-auth/react'
@@ -36,11 +38,12 @@ interface NavItem {
   permission?: string
 }
 
+// 4 most-used tabs in the bottom bar. Cashier-friendly defaults (POS first, no admin-y items).
 const bottomNav: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard',  icon: LayoutDashboard, permission: 'dashboard.view' },
   { label: 'POS',       href: '/pos',        icon: ShoppingCart,    permission: 'pos.use' },
   { label: 'Products',  href: '/products',   icon: Package,         permission: 'products.read' },
   { label: 'Orders',    href: '/orders',     icon: ClipboardList,   permission: 'orders.read' },
+  { label: 'Dashboard', href: '/dashboard',  icon: LayoutDashboard, permission: 'dashboard.view' },
 ]
 
 const allNav: NavItem[] = [
@@ -50,6 +53,9 @@ const allNav: NavItem[] = [
   { label: 'Products',     href: '/products',    icon: Package,         permission: 'products.read' },
   { label: 'Categories',   href: '/categories',  icon: Tag,             permission: 'categories.read' },
   { label: 'Inventory',    href: '/inventory',   icon: Warehouse,       permission: 'inventory.read' },
+  { label: 'Restock Insights', href: '/inventory/insights', icon: BarChart3, permission: 'inventory.read' },
+  { label: 'Vendors',      href: '/suppliers',   icon: Truck,           permission: 'suppliers.read' },
+  { label: 'Purchase Orders', href: '/purchase-orders', icon: FileText, permission: 'purchase_orders.read' },
   { label: 'Customers',    href: '/customers',   icon: Users,           permission: 'customers.read' },
   { label: 'Orders',       href: '/orders',      icon: ClipboardList,   permission: 'orders.read' },
   { label: 'Returns',      href: '/returns',     icon: RotateCcw,       permission: 'returns.read' },
@@ -65,7 +71,7 @@ const allNav: NavItem[] = [
 export function MobileNav() {
   const pathname = usePathname()
   const [sheetOpen, setSheetOpen] = useState(false)
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
 
   function isActive(href: string) {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -73,8 +79,16 @@ export function MobileNav() {
   }
 
   const role = (session?.user as any)?.role as UserRole | undefined
-  const visibleBottom = bottomNav.filter((i) => !i.permission || (role && hasPermission(role, i.permission)))
-  const visibleAll = allNav.filter((i) => !i.permission || (role && hasPermission(role, i.permission)))
+
+  // While session is still loading, show all items optimistically — otherwise the
+  // permission filter strips everything out and the menu appears empty until reload.
+  const sessionLoading = status === 'loading' || !role
+  const visibleBottom = sessionLoading
+    ? bottomNav
+    : bottomNav.filter((i) => !i.permission || hasPermission(role, i.permission))
+  const visibleAll = sessionLoading
+    ? allNav
+    : allNav.filter((i) => !i.permission || hasPermission(role, i.permission))
 
   const initials = session?.user?.name
     ? session.user.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)

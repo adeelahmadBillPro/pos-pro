@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema'
-import { Loader2, ShoppingBag, CheckCircle2 } from 'lucide-react'
+import { Loader2, ShoppingBag, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { registerSchema, type RegisterInput } from '@/lib/validations'
 import { STORE_TYPE_META, STORE_TYPE_ACCENT_CLASSES, type StoreType } from '@/lib/storeTypes'
@@ -52,6 +52,8 @@ export default function RegisterPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const form = useForm<RegisterInput>({
     resolver: standardSchemaResolver(registerSchema) as any,
@@ -223,13 +225,29 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Min 8 chars"
-                            autoComplete="new-password"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <input
+                              name={field.name}
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder="Min 8 chars"
+                              autoComplete="new-password"
+                              disabled={isLoading}
+                              className="flex h-10 w-full rounded-md border border-[var(--input)] bg-white px-3 py-2 pr-10 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 disabled:opacity-50"
+                            />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onClick={() => setShowPassword((p) => !p)}
+                              className="absolute right-0 top-0 h-full px-3 flex items-center justify-center text-gray-400 hover:text-slate-700 transition-colors"
+                              aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            >
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -243,13 +261,29 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Confirm password</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Repeat password"
-                            autoComplete="new-password"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <div className="relative">
+                            <input
+                              name={field.name}
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              ref={field.ref}
+                              type={showConfirm ? 'text' : 'password'}
+                              placeholder="Repeat password"
+                              autoComplete="new-password"
+                              disabled={isLoading}
+                              className="flex h-10 w-full rounded-md border border-[var(--input)] bg-white px-3 py-2 pr-10 text-sm placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 disabled:opacity-50"
+                            />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onClick={() => setShowConfirm((p) => !p)}
+                              className="absolute right-0 top-0 h-full px-3 flex items-center justify-center text-gray-400 hover:text-slate-700 transition-colors"
+                              aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                            >
+                              {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

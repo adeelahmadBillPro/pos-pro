@@ -302,6 +302,22 @@ button:not(:disabled):active,
 }
 .pulse-ring { animation: pulseRing 2s infinite; }
 
+/* ── Form field shake ── triggered on invalid submit so user notices the error */
+@keyframes shakeField {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+.shake-error { animation: shakeField 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+/* Auto-shake any input/select/textarea that has aria-invalid="true" set by react-hook-form */
+input[aria-invalid="true"],
+textarea[aria-invalid="true"],
+select[aria-invalid="true"] {
+  animation: shakeField 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  border-color: rgb(244 63 94) !important;
+}
+
 /* ── Cart item bounce ── when item added to cart */
 @keyframes cartBounce {
   0%   { transform: scale(1); }
